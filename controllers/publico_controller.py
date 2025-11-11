@@ -10,22 +10,22 @@ IMG_EVENTOS = {
     "debate": "https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=1200&q=60",
     "taller": "https://thumbs.dreamstime.com/b/grupo-de-j%C3%B3venes-multi%C3%A9tnicos-emprendedores-que-colaboran-en-proyectos-oficinas-modernas-%C3%A9xito-trabajando-equipo-juntos-338967711.jpg",
     "simposio": "https://medios.ut.edu.co/wp-content/uploads/2018/12/IMG_8466.jpg",
-    "seminario": "https://plus.unsplash.com/premium_photo-1679547202717-c1fea70eb817?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1yZWxhdGVkfDE2fHx8ZW58MHx8fHx8",
+    "seminario": "https://plus.unsplash.com/premium_photo-1679547202717-c1fea70eb817?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1yZWxhdGVkfDE6fHx8ZW58MHx8fHx8",
     "conferencia": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=60",
     "panel de expertos": "https://www.educablog.es/wp-content/uploads/2024/12/como-crear-un-panel-de-expertos-para-tu-evento-en-5-sencillos-pasos-aprende-a-seleccionar-invitar-y-coordinar-a-los-mejores-profesionales-para-tu-evento.jpg",
 }
 
-#ruta de inicio publico
+#ruta de inicio publico - CORREGIDO PARA UTC
 @publico_bp.route("/")
 def inicio_publico():
     tipos = request.args.getlist("tipo")
     
-    # Solo eventos activos y futuros para vista pública
+    # Solo eventos activos y futuros para vista pública - CORREGIDO: usar UTC_TIMESTAMP()
     sql = """
         SELECT id_evento, nombre, tipo_evento, fecha_inicio, fecha_fin, 
                lugar, ciudad, cupo_maximo, id_organizador, modalidad, enlace_virtual 
         FROM eventos 
-        WHERE activo=1 AND fecha_fin >= CURDATE()
+        WHERE activo=1 AND fecha_fin >= UTC_TIMESTAMP()
     """
     params = []
     
@@ -55,6 +55,8 @@ def inicio_publico():
         IMG_EVENTOS=IMG_EVENTOS,
         inscritas=inscritas
     )
+
+# Resto del código se mantiene igual...
 #Ruta de quienes somos
 @publico_bp.route("/quienes-somos")
 def quienes_somos():
@@ -112,3 +114,4 @@ def contacto():
             flash("Ocurrió un error inesperado. Por favor, intenta más tarde.", "danger")
     
     return render_template("info/contacto.html")
+
