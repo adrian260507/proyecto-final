@@ -112,7 +112,9 @@ class User(UserMixin):
         for campo in campos_permitidos:
             if campo in data and data[campo] is not None:
                 updates.append(f"{campo}=%s")
-                params.append(data[campo].strip())
+                # Si el valor está vacío, guardar como NULL
+                value = data[campo].strip()
+                params.append(value if value else None)
         
         if not updates:
             return False
@@ -125,7 +127,7 @@ class User(UserMixin):
             return True
         except Exception as e:
             from flask import current_app
-            current_app.logger.error(f"Error actualizando usuario: {e}")
+            current_app.logger.error(f"Error actualizando usuario {uid}: {e}")
             return False
 
 def ensure_default_admin():
@@ -144,3 +146,4 @@ def ensure_default_admin():
     except Exception as e:
         from flask import current_app
         current_app.logger.error(f"Error creando admin por defecto: {e}")
+
