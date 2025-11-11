@@ -35,7 +35,7 @@ def registro():
         try:
             uid = User.create_user(nombre, apellido, correo, contrasena, celular or None, documento_id or None)
             
-            # ❌ VERIFICACIÓN DE CORREO DESACTIVADA - Iniciar sesión directamente
+            # Iniciar sesión directamente sin verificación de correo
             user = User.get_by_id(uid)
             if user:
                 login_user(user)
@@ -51,7 +51,6 @@ def registro():
             return render_template("auth/registro.html")
     
     return render_template("auth/registro.html")
-
 # ❌ ELIMINADA LA RUTA DE VERIFICACIÓN DE CORREO
 # @auth_bp.route("/verify-email", methods=["GET", "POST"])
 # def verify_email():
@@ -252,6 +251,7 @@ def admin_reset_passwords():
     <p><strong>Contraseña temporal: {temp_password}</strong></p>
     <p>Los usuarios deben cambiar su contraseña después del primer login.</p>
     """
+
 
 
 
