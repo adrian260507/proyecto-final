@@ -5,17 +5,15 @@ from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from . import auth_bp
 from models.user import User
 from models.db import q_exec
-from utils.mailer import send_mail
 
-# Crea un serializador seguro con temporizador usando la SECRET_KEY de la aplicación - 05/10/2025
+# Crea un serializador seguro con temporizador usando la SECRET_KEY de la aplicación
 def _serializer():
     return URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
 
 @auth_bp.route("/registro", methods=["GET","POST"])
 def registro():
     if request.method == "POST":
-          # Obtener y limpiar datos del formulario
-
+        # Obtener y limpiar datos del formulario
         nombre = request.form.get("nombre","").strip()
         apellido = request.form.get("apellido","").strip()
         correo = request.form.get("correo","").strip().lower()
@@ -24,142 +22,44 @@ def registro():
         documento_id = request.form.get("documento_id","").strip()
 
         # Validar campos obligatorios
-
         if not (nombre and apellido and correo and contrasena):
             flash("Completa los campos obligatorios.", "warning")
             return render_template("auth/registro.html")
-        # Verificar si el correo ya está registrado
 
+        # Verificar si el correo ya está registrado
         if User.get_by_email(correo):
-            flash("Ese correo ya existe.", "danger")
+            flash("Este correo electrónico ya está registrado.", "danger")
             return render_template("auth/registro.html")
 
         # Crear usuario
-        uid = User.create_user(nombre, apellido, correo, contrasena, celular or None, documento_id or None)
-        
-        # Generar y guardar token de verificación
-        token = User.generate_verification_token()
-        User.set_verification_token(uid, token)
-        
-        # Enviar correo de verificación
         try:
-            from utils.email_renderer import send_templated_email
-          # Contexto para el template del email
-
-            context = {
-                'usuario_nombre': nombre,
-                'verification_token': token,
-                'expira_horas': 24
-            }
-                   # Enviar email con template
-
-            success = send_templated_email(
-                subject="🔐 Verifica tu correo electrónico - Connexa",
-                recipients=[correo],
-                template_path="emails/auth/verificacion_correo.html",
-                **context
-            )
+            uid = User.create_user(nombre, apellido, correo, contrasena, celular or None, documento_id or None)
             
-            if success:
-                flash("✅ Cuenta creada. Se ha enviado un código de verificación a tu correo.", "success")
-                return redirect(url_for("auth.verify_email", user_id=uid))
+            # ❌ VERIFICACIÓN DE CORREO DESACTIVADA - Iniciar sesión directamente
+            user = User.get_by_id(uid)
+            if user:
+                login_user(user)
+                flash("✅ Cuenta creada exitosamente. ¡Bienvenido/a!", "success")
+                return redirect(url_for("publico.inicio_publico"))
             else:
-                flash("⚠️ Cuenta creada, pero hubo un error enviando el código de verificación. Contacta al administrador.", "warning")
+                flash("Cuenta creada pero no se pudo iniciar sesión automáticamente. Por favor, inicia sesión.", "warning")
                 return redirect(url_for("auth.login"))
                 
         except Exception as e:
-            current_app.logger.error(f"Error enviando correo de verificación: {e}")
-            flash("⚠️ Cuenta creada, pero hubo un error enviando el código de verificación. Contacta al administrador.", "warning")
-            return redirect(url_for("auth.login"))
+            current_app.logger.error(f"Error creando usuario: {e}")
+            flash("Error al crear la cuenta. Por favor, intenta nuevamente.", "danger")
+            return render_template("auth/registro.html")
     
     return render_template("auth/registro.html")
 
-@auth_bp.route("/verify-email", methods=["GET", "POST"])
-def verify_email():
-    """Página para verificar el correo electrónico"""
-    user_id = request.args.get('user_id', type=int)
-    
-    if not user_id:
-        flash("Enlace de verificación inválido.", "danger")
-        return redirect(url_for("auth.registro"))
-    
-    user = User.get_by_id(user_id)
-    if not user:
-        flash("Usuario no encontrado.", "danger")
-        return redirect(url_for("auth.registro"))
-    
-    # Si ya está verificado, redirigir al login
-    if User.is_email_verified(user_id):
-        flash("✅ Tu correo ya está verificado. Puedes iniciar sesión.", "success")
-        return redirect(url_for("auth.login"))
-    
-    if request.method == "POST":
-        token = request.form.get("token", "").strip()
-        
-        if not token or len(token) != 6:
-            flash("❌ El código debe tener 6 dígitos.", "danger")
-            return render_template("auth/verify_email.html", user=user)
-        
-        # Verificar token
-        success, message = User.verify_email_with_token(user_id, token)
-        
-        if success:
-            flash(f"✅ {message}", "success")
-            return redirect(url_for("auth.login"))
-        else:
-            flash(f"❌ {message}", "danger")
-            return render_template("auth/verify_email.html", user=user)
-    
-    return render_template("auth/verify_email.html", user=user)
+# ❌ ELIMINADA LA RUTA DE VERIFICACIÓN DE CORREO
+# @auth_bp.route("/verify-email", methods=["GET", "POST"])
+# def verify_email():
 
-#Reenviar código de verificación a usuario no verificado
-@auth_bp.route("/resend-verification", methods=["POST"])
-def resend_verification():
-    """Reenviar código de verificación"""
-    user_id = request.form.get("user_id", type=int)
-    
-    if not user_id:
-        flash("❌ Solicitud inválida.", "danger")
-        return redirect(url_for("auth.registro"))
-    
-    user = User.get_by_id(user_id)
-    if not user:
-        flash("❌ Usuario no encontrado.", "danger")
-        return redirect(url_for("auth.registro"))
-    
-    # Generar nuevo token
-    token = User.generate_verification_token()
-    User.set_verification_token(user_id, token)
-    
-    # Reenviar correo
-    try:
-        from utils.email_renderer import send_templated_email
-        
-        context = {
-            'usuario_nombre': user.nombre,
-            'verification_token': token,
-            'expira_horas': 24
-        }
-        
-        success = send_templated_email(
-            subject="🔐 Nuevo código de verificación - Connexa",
-            recipients=[user.correo],
-            template_path="emails/auth/verificacion_correo.html",
-            **context
-        )
-        
-        if success:
-            flash("✅ Se ha enviado un nuevo código de verificación a tu correo.", "success")
-        else:
-            flash("❌ Error al reenviar el código. Contacta al administrador.", "danger")
-            
-    except Exception as e:
-        current_app.logger.error(f"Error reenviando verificación: {e}")
-        flash("❌ Error al reenviar el código. Contacta al administrador.", "danger")
-    
-    return redirect(url_for("auth.verify_email", user_id=user_id))
+# ❌ ELIMINADA LA RUTA DE REENVÍO DE VERIFICACIÓN
+# @auth_bp.route("/resend-verification", methods=["POST"])
 
-# Ruta para inicio de sesión de usuarios
+# Ruta para inicio de sesión de usuarios - SIN VERIFICACIÓN DE CORREO
 @auth_bp.route("/login", methods=["GET","POST"])
 def login():
     if current_user.is_authenticated:
@@ -171,44 +71,16 @@ def login():
         contrasena = request.form.get("contrasena","").strip()
         user = User.get_by_email(correo)
         
-        # DEBUG DETALLADO
-        current_app.logger.info(f"=== DEBUG LOGIN ===")
-        current_app.logger.info(f"Correo intentado: {correo}")
-        current_app.logger.info(f"Usuario encontrado: {user is not None}")
-        
-        if user:
-            current_app.logger.info(f"User ID: {user.id}")
-            current_app.logger.info(f"User activo: {user.is_active}")
-            current_app.logger.info(f"Email verificado: {user.email_verified}")
-            current_app.logger.info(f"Contraseña en DB: {user.contrasena[:30]}...")
-            current_app.logger.info(f"Contraseña proporcionada: {contrasena}")
-            
-            # Verificar contraseña con más detalle
-            password_match = check_password_hash(user.contrasena, contrasena)
-            current_app.logger.info(f"Contraseña coincide: {password_match}")
-            
-            if password_match:
-                if not user.is_active:
-                    current_app.logger.error("❌ Usuario inactivo")
-                    flash("El usuario está deshabilitado", "danger")
-                else:
-                    # TEMPORAL: Deshabilitar verificación de email
-                    # if not User.is_email_verified(user.id): 
-                    #     current_app.logger.error("❌ Email no verificado")
-                    #     flash("⚠️ Por favor, verifica tu correo electrónico antes de iniciar sesión.", "warning")
-                    #     return redirect(url_for("auth.verify_email", user_id=user.id))
-                    
-                    login_user(user)
-                    current_app.logger.info("✅ Login exitoso")
-                    flash("Bienvenido/a", "success")
-                    return redirect(url_for("publico.inicio_publico"))
+        if user and check_password_hash(user.contrasena, contrasena):
+            if not user.is_active:
+                flash("El usuario está deshabilitado", "danger")
             else:
-                current_app.logger.error("❌ Contraseña incorrecta")
+                # ❌ SIN VERIFICACIÓN DE CORREO - Iniciar sesión directamente
+                login_user(user)
+                flash("Bienvenido/a", "success")
+                return redirect(url_for("publico.inicio_publico"))
         else:
-            current_app.logger.error("❌ Usuario no encontrado en la base de datos")
-        
-        current_app.logger.error(f"Login fallido para: {correo}")
-        flash("Credenciales inválidas.", "danger")
+            flash("Credenciales inválidas.", "danger")
     
     return render_template("auth/login.html")
 
@@ -219,7 +91,7 @@ def logout():
     flash("Sesión cerrada.", "info")
     return redirect(url_for("publico.inicio_publico"))
 
-#ruta para configurar la cueta del usuario
+#ruta para configurar la cuenta del usuario
 @auth_bp.route("/configuracion", methods=["GET", "POST"])
 @login_required
 def configuracion_usuario():
@@ -278,9 +150,7 @@ def cambiar_password():
     flash("Contraseña actualizada correctamente.", "success")
     return redirect(url_for('auth.configuracion_usuario'))
 
-
-
-#ruta cuando se olvida la contraseñal
+#ruta cuando se olvida la contraseña
 @auth_bp.route("/forgot", methods=["GET","POST"])
 def forgot():
     if request.method == "POST":
@@ -337,7 +207,6 @@ def reset_password(token):
         flash("Token inválido.", "warning")
         return redirect(url_for("auth.forgot"))
 
-
     user = User.get_by_email(email) 
     if not user:
         flash("Cuenta no encontrada.", "danger")
@@ -355,7 +224,6 @@ def reset_password(token):
         return redirect(url_for("auth.login"))
 
     return render_template("auth/reset.html", token=token)
-    
 
 @auth_bp.route("/admin-reset-passwords")
 def admin_reset_passwords():
@@ -384,5 +252,6 @@ def admin_reset_passwords():
     <p><strong>Contraseña temporal: {temp_password}</strong></p>
     <p>Los usuarios deben cambiar su contraseña después del primer login.</p>
     """
+
 
 
