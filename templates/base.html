@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Gestión de Talleres y Conferencias</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+  <!-- Tu CSS de inicio -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <!-- Nuevo CSS para navbar móvil -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-nav.css') }}">
+
+  <style>
+    .brand { color:#1877f2; font-weight:700; letter-spacing:.2px; }
+    .table thead th { white-space: nowrap; }
+    .checkbox-cell { text-align:center; vertical-align:middle; }
+    
+    /* Estilos existentes que se mantienen */
+    .nav-user-actions { display: flex; gap: 0.5rem; align-items: center; }
+    .nav-user-actions .btn { white-space: nowrap; }
+    
+    @media (max-width: 768px) {
+      .nav-user-actions { 
+        flex-direction: column; 
+        width: 100%;
+        margin-top: 1rem;
+      }
+      .nav-user-actions .btn { 
+        width: 100%; 
+        text-align: center;
+        margin: 0.25rem 0;
+      }
+    }
+  </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-dark navbar-expand-lg">
+  <div class="container">
+    <!-- Marca: lleva al nuevo inicio público -->
+    <a class="navbar-brand brand" href="{{ url_for('publico.inicio_publico') }}">Connexa</a>
+
+    <!-- Checkbox hack para el menú móvil sin JavaScript -->
+    <input type="checkbox" id="navbar-toggler-checkbox" class="navbar-toggler-checkbox">
+    <label for="navbar-toggler-checkbox" class="navbar-toggler" type="button">
+      <span class="navbar-toggler-icon"></span>
+    </label>
+
+    <div class="navbar-collapse" id="navc">
+      <ul class="navbar-nav me-auto"> 
+        <!-- Enlace a Inicio -->
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('publico.inicio_publico') }}">Inicio</a></li>
+
+        <!-- Enlace a TODOS los eventos (visible para todos) -->
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('eventos.eventos_list') }}">Eventos</a></li>
+
+        {% if current_user.is_authenticated and current_user.rol_id == 1 %}
+          <!-- Enlace a MIS eventos inscritos (solo para usuarios) -->
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('eventos.mis_eventos') }}">Mis eventos</a></li>
+        {% endif %}
+
+        {% if current_user.is_authenticated and current_user.rol_id in [2,3] %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('eventos.eventos_nuevo') }}">Crear evento</a></li>
+        {% endif %}
+        
+        {% if current_user.is_authenticated and current_user.rol_id == 2 %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.admin_roles') }}">Asignar roles</a></li>
+        {% endif %}
+
+        <!-- Enlace a Quiénes Somos -->
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('publico.quienes_somos') }}">Quiénes Somos</a></li>
+
+      </ul>
+
+      <div class="nav-user-actions">
+        {% if current_user.is_authenticated %}
+          <!-- Enlaces separados en lugar de dropdown -->
+          <span class="navbar-text text-light me-2 d-none d-md-block">
+            <i class="fas fa-user me-1"></i>{{ current_user.nombre }}
+          </span>
+          <a class="btn btn-outline-light btn-sm" href="{{ url_for('auth.configuracion_usuario') }}">
+            <i class="fas fa-cog me-1"></i>Configuración
+          </a>
+          <a class="btn btn-outline-light btn-sm" href="{{ url_for('auth.logout') }}">
+            <i class="fas fa-sign-out-alt me-1"></i>Cerrar sesión
+          </a>
+        {% else %}
+          <a class="btn btn-outline-light btn-sm me-2" href="{{ url_for('auth.login') }}">
+            <i class="fas fa-sign-in-alt me-1"></i>Entrar
+          </a>
+          <a class="btn btn-success btn-sm" href="{{ url_for('auth.registro') }}">
+            <i class="fas fa-user-plus me-1"></i>Registrarme
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat,msg in messages %}
+      <div class="alert alert-{{cat}} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</div>
+
+<!-- Bootstrap JS (solo para funcionalidades básicas como el alert dismissible) -->
+
+</body>
+</html>
+
