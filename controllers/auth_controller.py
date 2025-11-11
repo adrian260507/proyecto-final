@@ -96,24 +96,35 @@ def logout():
 @login_required
 def configuracion_usuario():
     if request.method == "POST":
-        data = {
-            'nombre': request.form.get('nombre'),
-            'apellido': request.form.get('apellido'),
-            'celular': request.form.get('celular'),
-            'documento_id': request.form.get('documento_id')
-        }
-        
-        if User.actualizar_usuario(current_user.id, data):
-            flash("Tus datos se han actualizado correctamente.", "success")
-            # Recargar usuario actualizado
-            updated_user = User.get_by_id(current_user.id)
-            login_user(updated_user)  # Actualizar la sesión
-            return redirect(url_for('auth.configuracion_usuario'))
-        else:
-            flash("Error al actualizar los datos. Intenta nuevamente.", "danger")
+        try:
+            data = {
+                'nombre': request.form.get('nombre', '').strip(),
+                'apellido': request.form.get('apellido', '').strip(),
+                'celular': request.form.get('celular', '').strip(),
+                'documento_id': request.form.get('documento_id', '').strip()
+            }
+            
+            # Validar que al menos el nombre esté presente
+            if not data['nombre']:
+                flash("El nombre es obligatorio.", "danger")
+                return render_template("auth/configuracion_usuario.html", usuario=current_user)
+            
+            if User.actualizar_usuario(current_user.id, data):
+                flash("Tus datos se han actualizado correctamente.", "success")
+                # Recargar usuario actualizado
+                updated_user = User.get_by_id(current_user.id)
+                if updated_user:
+                    login_user(updated_user)  # Actualizar la sesión
+                return redirect(url_for('auth.configuracion_usuario'))
+            else:
+                flash("Error al actualizar los datos. Intenta nuevamente.", "danger")
+                
+        except Exception as e:
+            current_app.logger.error(f"Error en configuracion_usuario: {str(e)}")
+            flash("Ocurrió un error inesperado. Por favor, intenta nuevamente.", "danger")
     
     return render_template("auth/configuracion_usuario.html", usuario=current_user)
-
+    
 #ruta para cambiar la contraseña
 @auth_bp.route("/configuracion/cambiar-password", methods=["POST"])
 @login_required
@@ -252,6 +263,7 @@ def admin_reset_passwords():
     <p><strong>Contraseña temporal: {temp_password}</strong></p>
     <p>Los usuarios deben cambiar su contraseña después del primer login.</p>
     """
+
 
 
 
