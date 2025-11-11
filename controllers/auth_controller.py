@@ -91,6 +91,7 @@ def logout():
     return redirect(url_for("publico.inicio_publico"))
 
 #ruta para configurar la cuenta del usuario
+#ruta para configurar la cueta del usuario
 @auth_bp.route("/configuracion", methods=["GET", "POST"])
 @login_required
 def configuracion_usuario():
@@ -251,6 +252,7 @@ def admin_reset_passwords():
     <p><strong>Contraseña temporal: {temp_password}</strong></p>
     <p>Los usuarios deben cambiar su contraseña después del primer login.</p>
     """
+
 
 
 
