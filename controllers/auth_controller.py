@@ -130,11 +130,11 @@ def configuracion_usuario():
 @login_required
 def cambiar_password():
     from models.db import q_exec
-    from werkzeug.security import generate_password_hash
+    from werkzeug.security import generate_password_hash, check_password_hash
     
-    password_actual = request.form.get('password_actual')
-    nueva_password = request.form.get('nueva_password')
-    confirmar_password = request.form.get('confirmar_password')
+    password_actual = request.form.get('password_actual', '').strip()
+    nueva_password = request.form.get('nueva_password', '').strip()
+    confirmar_password = request.form.get('confirmar_password', '').strip()
     
     if not password_actual or not nueva_password:
         flash("Todos los campos son obligatorios.", "danger")
@@ -155,10 +155,14 @@ def cambiar_password():
     
     # Actualizar contraseña
     hashed_password = generate_password_hash(nueva_password)
-    q_exec("UPDATE usuarios SET contrasena=%s WHERE ID_usuario=%s", 
-           (hashed_password, current_user.id))
+    try:
+        q_exec("UPDATE usuarios SET contrasena=%s WHERE ID_usuario=%s", 
+               (hashed_password, current_user.id))
+        flash("Contraseña actualizada correctamente.", "success")
+    except Exception as e:
+        current_app.logger.error(f"Error actualizando contraseña: {e}")
+        flash("Error al actualizar la contraseña. Intenta nuevamente.", "danger")
     
-    flash("Contraseña actualizada correctamente.", "success")
     return redirect(url_for('auth.configuracion_usuario'))
 
 #ruta cuando se olvida la contraseña
@@ -263,6 +267,7 @@ def admin_reset_passwords():
     <p><strong>Contraseña temporal: {temp_password}</strong></p>
     <p>Los usuarios deben cambiar su contraseña después del primer login.</p>
     """
+
 
 
 
