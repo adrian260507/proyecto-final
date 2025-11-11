@@ -7,51 +7,101 @@
         <h3 class="text-center mb-1 brand">Connexa</h3>
         <h4 class="text-center mb-4">Crea una cuenta</h4>
 
-        <form method="post" autocomplete="on">
+        <!-- Mostrar mensajes flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="post" autocomplete="on" id="registroForm">
           <div class="row g-2">
             <div class="col-md-6">
-              <label class="form-label" for="nombre">Nombre</label>
+              <label class="form-label" for="nombre">Nombre *</label>
               <input class="form-control" id="nombre" name="nombre"
-                    autocomplete="given-name" required>
+                    autocomplete="given-name" required value="{{ request.form.nombre if request.form.nombre }}">
             </div>
             <div class="col-md-6">
-              <label class="form-label" for="apellido">Apellidos</label>
+              <label class="form-label" for="apellido">Apellidos *</label>
               <input class="form-control" id="apellido" name="apellido"
-                    autocomplete="family-name" required>
+                    autocomplete="family-name" required value="{{ request.form.apellido if request.form.apellido }}">
             </div>
           </div>
 
           <div class="mt-2">
-            <label class="form-label" for="correo">Correo electrónico</label>
+            <label class="form-label" for="correo">Correo electrónico *</label>
             <input class="form-control" id="correo" type="email" name="correo"
-                  autocomplete="email" required>
+                  autocomplete="email" required value="{{ request.form.correo if request.form.correo }}">
           </div>
 
           <div class="row g-2 mt-2">
             <div class="col-md-6">
               <label class="form-label" for="documento_id">Documento</label>
               <input class="form-control" id="documento_id" name="documento_id"
-                    autocomplete="off" inputmode="numeric" pattern="\d*">
+                    autocomplete="off" inputmode="numeric" pattern="\d*" 
+                    value="{{ request.form.documento_id if request.form.documento_id }}">
             </div>
             <div class="col-md-6">
               <label class="form-label" for="celular">Celular (opcional)</label>
               <input class="form-control" id="celular" name="celular"
-                    autocomplete="tel" inputmode="tel">
+                    autocomplete="tel" inputmode="tel" 
+                    value="{{ request.form.celular if request.form.celular }}">
             </div>
           </div>
 
           <div class="mt-2">
-            <label class="form-label" for="contrasena">Contraseña nueva</label>
+            <label class="form-label" for="contrasena">Contraseña nueva *</label>
             <input class="form-control" id="contrasena" type="password" name="contrasena"
-                  autocomplete="new-password" required>
+                  autocomplete="new-password" required minlength="6">
+            <div class="form-text">La contraseña debe tener al menos 6 caracteres.</div>
           </div>
 
-          <button class="btn btn-success w-100 mt-3">Registrarte</button>
-          <p class="mt-2 text-center"><a href="{{ url_for('auth.login') }}">¿Ya tienes una cuenta?</a></p>
+          <button type="submit" class="btn btn-success w-100 mt-3" id="submitBtn">
+            <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+            Registrarte
+          </button>
+          
+          <p class="mt-2 text-center">
+            <a href="{{ url_for('auth.login') }}">¿Ya tienes una cuenta? Inicia sesión</a>
+          </p>
         </form>
 
       </div>
     </div>
   </div>
 </div>
+
+
+<style>
+.brand {
+  color: #2c3e50;
+  font-weight: bold;
+  font-size: 2rem;
+}
+.card {
+  border: none;
+  border-radius: 15px;
+}
+.btn-success {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  border: none;
+  border-radius: 25px;
+  padding: 10px;
+  font-weight: bold;
+}
+.form-control {
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  padding: 10px;
+}
+.form-control:focus {
+  border-color: #28a745;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+</style>
 {% endblock %}
