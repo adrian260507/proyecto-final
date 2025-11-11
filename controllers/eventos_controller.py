@@ -52,9 +52,10 @@ def eventos_list():
         if rol == 1:
             from controllers.publico_controller import IMG_EVENTOS
             
+            # Construir consulta con filtros - CORREGIDO: usar UTC_TIMESTAMP()
             sql = """
                 SELECT * FROM eventos 
-                WHERE activo=1 AND fecha_fin >= CURDATE()
+                WHERE activo=1 AND fecha_fin >= UTC_TIMESTAMP()
             """
             params = []
             
@@ -1254,5 +1255,6 @@ def test_email():
     else:
         flash("❌ Prueba de correo fallida", "danger")
     return redirect(url_for("publico.inicio_publico"))
+
 
 
